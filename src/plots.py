@@ -34,6 +34,77 @@ def plot_preemphasis(b, a, fname="01_preenfase.png"):
     return out
 
 
+def plot_spectrograms(signals, titles, fname, fs=config.FS, sup=None):
+    """Espectrogramas lado a lado (lista de sinais + títulos)."""
+    from scipy.signal import spectrogram
+    n = len(signals)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 4), squeeze=False)
+    for ax, sig, ttl in zip(axes[0], signals, titles):
+        f, t, Sxx = spectrogram(sig, fs=fs, nperseg=512, noverlap=384)
+        ax.pcolormesh(t, f, 10 * np.log10(Sxx + 1e-12), shading="gouraud")
+        ax.set_title(ttl)
+        ax.set_xlabel("Tempo (s)")
+        ax.set_ylabel("Frequência (Hz)")
+        ax.set_ylim(0, fs / 2)
+    if sup:
+        fig.suptitle(sup)
+    fig.tight_layout()
+    out = config.FIG_DIR / fname
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
+def plot_notch_responses(candidates, a_sel, edges, fname="03_notch.png",
+                         fs=config.FS):
+    """Gráfico obrigatório 3: notch DC p/ vários `a`, região 0 <= ŵ <= 0.25."""
+    import envelope
+    w = np.linspace(1e-4, 0.25, 4000)  # frequência normalizada ŵ (rad/amostra)
+    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+    for a in candidates:
+        mag = envelope.notch_magnitude(a, w)
+        edge_hz = edges[a]
+        sel = " (escolhido)" if a == a_sel else ""
+        ax.plot(w, mag, lw=1.6, label=f"a={a}  | borda≈{edge_hz:.0f} Hz{sel}")
+    ax.axhline(0.9, color="gray", ls=":", lw=1.0)
+    ax.set_title("Notch DC  H(z)=(1-z⁻¹)/(1-a·z⁻¹)  —  |H| em 0 ≤ ŵ ≤ 0.25")
+    ax.set_xlabel("ŵ (rad/amostra)")
+    ax.set_ylabel("|H(e^{jŵ})|")
+    ax.set_xlim(0, 0.25)
+    ax.set_ylim(0, 1.05)
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    out = config.FIG_DIR / fname
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
+def plot_channel_cascade(smoother, notch_b, notch_a, canal, fname="04_cascata.png",
+                        fs=config.FS):
+    """Gráfico obrigatório 4: suavizador, notch e cascata de um canal."""
+    f_s, m_s = freq_response(smoother, fs=fs)
+    f_n, m_n = freq_response(notch_b, notch_a, fs=fs)
+    # cascata: convolução do FIR suavizador com o numerador do notch / denom
+    f_c, m_c = freq_response(np.convolve(smoother, notch_b), notch_a, fs=fs)
+    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+    ax.plot(f_s, m_s, lw=1.5, label="suavizador (passa-baixa)")
+    ax.plot(f_n, m_n, lw=1.5, label="notch DC")
+    ax.plot(f_c, m_c, "k", lw=2.0, label="cascata")
+    ax.set_title(f"Canal {canal}: suavizador, notch DC e cascata")
+    ax.set_xlabel("Frequência (Hz)")
+    ax.set_ylabel("|H(f)|")
+    ax.set_xlim(0, fs / 2)
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    out = config.FIG_DIR / fname
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
 def plot_filterbank(taps, fname="02_banco_e_soma.png", fs=config.FS):
     """Gráfico obrigatório 2: N respostas do banco + soma das magnitudes."""
     fig, ax = plt.subplots(figsize=(8, 4.5))
