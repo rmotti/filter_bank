@@ -34,6 +34,38 @@ def plot_preemphasis(b, a, fname="01_preenfase.png"):
     return out
 
 
+def plot_quantized_responses(bpf, bpf_q15, bpf_q7, fname="06_quant_resp.png",
+                            fs=config.FS):
+    """Gráfico obrigatório 5: resposta do banco original vs Q1.15 vs Q1.7,
+    por canal (grade de subplots)."""
+    n = len(bpf)
+    cols = 4
+    rows = int(np.ceil(n / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 3 * rows),
+                             squeeze=False)
+    for k in range(n):
+        ax = axes[k // cols][k % cols]
+        f, m0 = freq_response(bpf[k], fs=fs)
+        _, m15 = freq_response(bpf_q15[k], fs=fs)
+        _, m7 = freq_response(bpf_q7[k], fs=fs)
+        ax.plot(f, m0, "k", lw=1.5, label="original")
+        ax.plot(f, m15, "tab:blue", lw=1.0, label="Q1.15")
+        ax.plot(f, m7, "tab:red", lw=1.0, alpha=0.8, label="Q1.7")
+        ax.set_title(f"canal {k+1}", fontsize=9)
+        ax.set_xlim(0, fs / 2)
+        ax.grid(True, alpha=0.3)
+        if k == 0:
+            ax.legend(fontsize=7)
+    for k in range(n, rows * cols):
+        axes[k // cols][k % cols].axis("off")
+    fig.suptitle("Resposta dos filtros: original vs Q1.15 vs Q1.7")
+    fig.tight_layout()
+    out = config.FIG_DIR / fname
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
 def plot_spectrograms(signals, titles, fname, fs=config.FS, sup=None):
     """Espectrogramas lado a lado (lista de sinais + títulos)."""
     from scipy.signal import spectrogram
