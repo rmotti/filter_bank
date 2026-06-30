@@ -5,8 +5,8 @@ Gera os gráficos obrigatórios 1 e 2 e imprime um diagnóstico da planura da
 soma do banco (critério para escolher L).
 
 Uso:
-    python run_fase1_2.py            # N = 8, L do config
-    python run_fase1_2.py 16 301     # N = 16 canais, L = 301
+    python preenfase_e_banco.py            # N = 8, L do config
+    python preenfase_e_banco.py 16 301     # N = 16 canais, L = 301
 """
 import sys
 import numpy as np
